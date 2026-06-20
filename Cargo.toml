@@ -2,5 +2,10 @@
 name = "uvd"
 version = "0.1.0"
 edition = "2024"
-
+description = "U"
+license = "AGPL-3.0"
+readme = "README.md"
+keywords = ["unix"]
+categories = ["command-line-utilities"]
+repository = "https://github.com/kognitara/uvd"
 [dependencies]
