@@ -1,6 +1,6 @@
 [package]
 name = "uvd"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
 description = "Unix Verified Disk"
 license = "AGPL-3.0"
@@ -10,6 +10,13 @@ categories = ["command-line-utilities"]
 repository = "https://github.com/kognitara/uvd"
 
 [dependencies]
+clap = "4.6.1"
+crossterm = "0.29.0"
 fluent-templates = { version = "0.14.0", features = [] }
+ignore = "0.4.27"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_yaml = "0.9.34"
 sys-locale = "0.3.2"
+tar = "0.4.46"
 unic-langid = "0.9.6"
+zstd = "0.13.3"
