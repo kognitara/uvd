@@ -1,0 +1,10 @@
+package:
+  name: "uvd"
+  version: "0.0.0"
+  description: "Unix verified distribution"
+  author: "Shirusu Ryu <shirusuryu@gmail.com>"
+  license: "APGL-3.0"
+layout:
+  readme: "README.md"
+  license: "LICENSE"
+  man_pages: "man/jinshu.1"

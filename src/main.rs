@@ -1,64 +1,20 @@
-mod cli;
+use fluent_templates::{Loader, static_loader};
+use sys_locale::get_locale;
+use unic_langid::langid;
 
-use std::process::ExitCode;
-
-use clap::{Arg, ArgAction, Command};
-
-fn cli() -> Command {
-    Command::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"))
-        .about(env!("CARGO_PKG_DESCRIPTION"))
-        .subcommand(
-            Command::new("verify").about("Verify a disk image").arg(
-                Arg::new("image")
-                    .short('i')
-                    .help("Path to the disk image")
-                    .required(true)
-                    .action(ArgAction::Set),
-            ),
-        )
-        .subcommand(
-            Command::new("install").arg(
-                Arg::new("image")
-                    .short('i')
-                    .required(true)
-                    .action(ArgAction::Set),
-            ),
-        )
+static_loader! {
+  pub static LOCALES = {
+        locales: "./locales", // Il va chercher les dossiers enfants
+        fallback_language: "en-US",
+        // ...
+    };
 }
-fn main() -> ExitCode {
-    let app = cli().get_matches();
+fn main() {
+    let locale = get_locale().unwrap_or_else(|| "en-US".to_string());
 
-    match app.subcommand() {
-        Some(("verify", sub)) => {
-            let image_path = sub.get_one::<String>("image").unwrap();
-            
-            match cli::images::read_disk_from_uvd(image_path) {
-                Ok(disk) => {
-                    if cli::images::disk_os_valid(&disk) {
-                        println!("✓ Disk image verified successfully");
-                        println!("  ID: {}", disk.id);
-                        println!("  Size: {} bytes", disk.size);
-                        println!("  Verified: {}", disk.verified);
-                        ExitCode::SUCCESS
-                    } else {
-                        eprintln!("✗ Disk OS is not compatible with this system");
-                        ExitCode::FAILURE
-                    }
-                }
-                Err(e) => {
-                    eprintln!("✗ Failed to read disk image: {}", e);
-                    ExitCode::FAILURE
-                }
-            }
-        }
-        Some(("install", sub)) => {
-            let image = sub.get_one::<String>("image").unwrap();
-            cli::install_disk_image(image)
-        }
-        _ => {
-            cli().print_help().unwrap();
-            ExitCode::FAILURE
-        }
-    }
+    let lang = locale.parse().unwrap_or(langid!("en-US"));
+    println!(
+        "{}",
+        LOCALES.try_lookup(&lang, "hello-world").unwrap_or_default()
+    );
 }
