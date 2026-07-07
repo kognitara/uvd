@@ -1,9 +1,13 @@
+use crate::{
+    ko,
+    manifest::{DEVELOPER_FILENAME, generate_developer_json},
+    ok,
+};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, path::Path};
 use tar::Builder;
+use unic_langid::LanguageIdentifier;
 use zstd::Encoder;
-
-use crate::manifest::generate_manifest;
 
 #[derive(Serialize, Clone, Default, Deserialize)]
 pub struct Package {
@@ -18,24 +22,19 @@ pub struct Package {
 }
 
 impl Package {
-    pub fn archive(&mut self) -> bool {
+    pub fn archive(&mut self, lang: &LanguageIdentifier) -> bool {
         let archive_name = format!("{}_{}.tar.gz", self.name, self.version);
         let tmp_path = format!("/tmp/{}", archive_name);
 
         {
-            // 1. Création du fichier
             let archive =
                 File::create(Path::new(&tmp_path)).expect("failed to create temp archive");
 
-            // 2. Création de l'encodeur Zstd
             let zstd_encoder = Encoder::new(archive, 19).expect("failed to encode");
 
-            // 3. Création du Builder
             let mut tar = Builder::new(zstd_encoder);
-            let manifest_path = "manifest.json";
-            let content = generate_manifest(&self.src);
-            std::fs::write(manifest_path, content.as_str()).expect("failed to write manifest.json");
-            // Exécuter GPG pour générer la signature détachée
+            let content = generate_developer_json(&self.src);
+            std::fs::write(DEVELOPER_FILENAME, content.as_str()).expect(DEVELOPER_FILENAME);
 
             let status = std::process::Command::new("gpg")
                 .args([
@@ -43,29 +42,33 @@ impl Package {
                     "--yes",
                     "--detach-sign",
                     "--armor",
-                    "manifest.json",
+                    DEVELOPER_FILENAME,
                 ])
                 .status()
                 .expect("failed to execute gpg");
 
             if !status.success() {
-                // Ici, on gère l'erreur sans paniquer
-                eprintln!("Erreur: GPG a échoué. Vérifiez vos clés.");
-                std::fs::remove_file("manifest.json").ok();
-                return false; // On quitte proprement
+                ko(lang, "failed-to-sign-check-your-gpg-keys");
+                std::fs::remove_file(DEVELOPER_FILENAME).ok();
+                return false;
             }
             let mut header = tar::Header::new_gnu();
             header.set_size(content.len() as u64);
             header.set_mode(0o644);
-            tar.append_data(&mut header, manifest_path, content.as_bytes())
+            tar.append_data(&mut header, DEVELOPER_FILENAME, content.as_bytes())
                 .expect("failed to add manifest");
-            let signature = std::fs::read("manifest.json.asc").expect("failed to read signature");
+            let signature = std::fs::read(format!("{DEVELOPER_FILENAME}.asc"))
+                .expect("failed to read signature");
 
             let mut sig_header = tar::Header::new_gnu();
             sig_header.set_size(signature.len() as u64);
             sig_header.set_mode(0o644);
-            tar.append_data(&mut sig_header, "manifest.json.asc", signature.as_slice())
-                .expect("failed to add signature to archive");
+            tar.append_data(
+                &mut sig_header,
+                format!("{DEVELOPER_FILENAME}.asc").as_str(),
+                signature.as_slice(),
+            )
+            .expect("failed to add signature to archive");
 
             for item in &self.src {
                 let path = Path::new(item);
@@ -77,19 +80,15 @@ impl Package {
                     }
                 }
             }
-
-            // 4. TRÈS IMPORTANT : Finaliser le tar manuellement
             tar.finish().expect("failed to finish tar");
-
-            // 5. Récupérer l'encodeur pour le fermer proprement
             let encoder = tar.into_inner().expect("failed to get encoder");
             encoder.finish().expect("failed to finish zstd");
-        } // <-- Ici, tout est fermé et flushé sur le disque
-        std::fs::remove_file("manifest.json").ok();
-        std::fs::remove_file("manifest.json.asc").ok();
-        // Maintenant, le fichier est complet, on peut copier
-        std::fs::copy(&tmp_path, &archive_name).expect("failed to copy");
-        std::fs::remove_file(&tmp_path).expect("failed to remove temp");
+        }
+        std::fs::remove_file(DEVELOPER_FILENAME).ok();
+        std::fs::remove_file(format!("{DEVELOPER_FILENAME}.asc")).ok();
+        std::fs::copy(tmp_path.as_str(), archive_name.as_str()).expect("failed to copy");
+        std::fs::remove_file(&tmp_path).expect("failed to remove tempfile");
+        ok(lang, "developer-generated-successfully");
         true
     }
 }

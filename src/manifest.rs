@@ -1,8 +1,15 @@
+use crossterm::cursor::Hide;
+use crossterm::cursor::Show;
+use crossterm::execute;
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 use serde::Serialize;
 use std::fs::File;
 use std::io::Read;
+use std::io::stdout;
+
+#[doc = "File containing all checksums of the developer's source code"]
+pub const DEVELOPER_FILENAME: &str = "developer.json";
 
 #[derive(Serialize, Deserialize)]
 struct Manifest {
@@ -15,14 +22,15 @@ struct FileEntry {
     hash: String,
 }
 
-#[doc = "generate the manifest.json"]
-pub fn generate_manifest(src_list: &Vec<String>) -> String {
+#[doc = "generate the developer.json"]
+pub fn generate_developer_json(src_list: &Vec<String>) -> String {
+    execute!(stdout(), Hide).expect("failed to hide cursor");
     let mut files = Vec::new();
     let pb = ProgressBar::new(src_list.len() as u64);
     pb.set_style(
-        ProgressStyle::with_template("{spinner:.white} [{elapsed_precise}] {eta} [{bar}] ({msg})")
+        ProgressStyle::with_template("{spinner:.white} [{bar}] {msg}")
             .unwrap()
-            .progress_chars("#> "),
+            .progress_chars("=> "),
     );
 
     for item in src_list {
@@ -46,6 +54,7 @@ pub fn generate_manifest(src_list: &Vec<String>) -> String {
             pb.inc(1);
         }
     }
-    pb.finish_with_message("manifest generated");
+    pb.finish_with_message("generated");
+    execute!(stdout(), Show).expect("failed to show cursor");
     serde_json::to_string_pretty(&Manifest { files }).expect("failed to serialize")
 }

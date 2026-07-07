@@ -1,3 +1,7 @@
 start-building = Création de l'archive à partir du code source...
 build-success = L'archive uvd a été créée avec succès.
 build-failure = La création de l'archive uvd a échoué.
+failed-to-sign-check-your-gpg-keys = Échec de la signature du manifeste des sommes de contrôle.
+developer-generated-successfully = Manifeste développeur généré avec succès.
+src-must-be-a-directory = La source doit être un répertoire.
+src-must-be-contains-uvd-yml = Le répertoire source doit contenir le fichier uvd.yml.

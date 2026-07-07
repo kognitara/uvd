@@ -2,7 +2,7 @@
 name = "uvd"
 version = "0.0.0"
 edition = "2024"
-description = "Unix Verified Disk"
+description = "Unix Verified Distribution"
 license = "AGPL-3.0"
 readme = "README.md"
 keywords = ["unix", "disk", "verification", "cli"]
