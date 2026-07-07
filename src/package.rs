@@ -3,6 +3,8 @@ use std::{fs::File, path::Path};
 use tar::Builder;
 use zstd::Encoder;
 
+use crate::manifest::generate_manifest;
+
 #[derive(Serialize, Clone, Default, Deserialize)]
 pub struct Package {
     name: String,
@@ -30,6 +32,32 @@ impl Package {
 
             // 3. Création du Builder
             let mut tar = Builder::new(zstd_encoder);
+            let manifest_path = "manifest.json";
+            let content = generate_manifest(&self.src);
+            std::fs::write(manifest_path, content.as_str()).expect("failed to write manifest.json");
+            // Exécuter GPG pour générer la signature détachée
+            std::process::Command::new("gpg")
+                .args([
+                    "--batch",
+                    "--yes",
+                    "--detach-sign",
+                    "--armor",
+                    "manifest.json",
+                ])
+                .status()
+                .expect("failed to sign manifest");
+            let mut header = tar::Header::new_gnu();
+            header.set_size(content.len() as u64);
+            header.set_mode(0o644);
+            tar.append_data(&mut header, manifest_path, content.as_bytes())
+                .expect("failed to add manifest");
+            let signature = std::fs::read("manifest.json.asc").expect("failed to read signature");
+
+            let mut sig_header = tar::Header::new_gnu();
+            sig_header.set_size(signature.len() as u64);
+            sig_header.set_mode(0o644);
+            tar.append_data(&mut sig_header, "manifest.json.asc", signature.as_slice())
+                .expect("failed to add signature to archive");
 
             for item in &self.src {
                 let path = Path::new(item);
@@ -49,7 +77,8 @@ impl Package {
             let encoder = tar.into_inner().expect("failed to get encoder");
             encoder.finish().expect("failed to finish zstd");
         } // <-- Ici, tout est fermé et flushé sur le disque
-
+        std::fs::remove_file("manifest.json").ok();
+        std::fs::remove_file("manifest.json.asc").ok();
         // Maintenant, le fichier est complet, on peut copier
         std::fs::copy(&tmp_path, &archive_name).expect("failed to copy");
         std::fs::remove_file(&tmp_path).expect("failed to remove temp");

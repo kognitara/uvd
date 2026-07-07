@@ -11,7 +11,9 @@ use unic_langid::{LanguageIdentifier, langid};
 
 use crate::package::Package;
 
+mod manifest;
 mod package;
+
 static_loader! {
   pub static LOCALES = {
         locales: "./locales",
