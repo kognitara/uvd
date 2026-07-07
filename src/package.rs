@@ -36,7 +36,8 @@ impl Package {
             let content = generate_manifest(&self.src);
             std::fs::write(manifest_path, content.as_str()).expect("failed to write manifest.json");
             // Exécuter GPG pour générer la signature détachée
-            std::process::Command::new("gpg")
+
+            let status = std::process::Command::new("gpg")
                 .args([
                     "--batch",
                     "--yes",
@@ -45,7 +46,14 @@ impl Package {
                     "manifest.json",
                 ])
                 .status()
-                .expect("failed to sign manifest");
+                .expect("failed to execute gpg");
+
+            if !status.success() {
+                // Ici, on gère l'erreur sans paniquer
+                eprintln!("Erreur: GPG a échoué. Vérifiez vos clés.");
+                std::fs::remove_file("manifest.json").ok();
+                return false; // On quitte proprement
+            }
             let mut header = tar::Header::new_gnu();
             header.set_size(content.len() as u64);
             header.set_mode(0o644);
