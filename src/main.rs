@@ -25,13 +25,18 @@ fn cli() -> Command {
     Command::new(env!("CARGO_PKG_NAME"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .version(env!("CARGO_PKG_VERSION"))
-        .subcommand(Command::new("config").subcommands([
-            Command::new("init").about("init uvd configuration"),
-            Command::new("edit").about("edit uvd configuration"),
-        ]))
-        .subcommand(Command::new("db").about("create teams database"))
+        .subcommand(
+            Command::new("config")
+                .about("Manage uvd config file")
+                .subcommands([
+                    Command::new("init").about("Init uvd configuration"),
+                    Command::new("edit").about("Edit uvd configuration"),
+                ]),
+        )
+        .subcommand(Command::new("db").about("Create teams database"))
         .subcommand(
             Command::new("submit")
+                .about("Submit archive to a team's member")
                 .arg(
                     Arg::new("level")
                         .short('l')
