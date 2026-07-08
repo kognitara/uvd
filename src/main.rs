@@ -196,10 +196,8 @@ async fn main() -> ExitCode {
                 let gpg_key = sub.get_one::<String>("gpg_key").expect("gpg");
 
                 if add_role(&lang, role, name, email, gpg_key).await.is_ok() {
-                    ok(&lang, "role-created");
                     ExitCode::SUCCESS
                 } else {
-                    ko(&lang, "role-not-created");
                     ExitCode::FAILURE
                 }
             }
@@ -224,19 +222,29 @@ async fn main() -> ExitCode {
                     "developer" => {
                         let developers = fetch_developers().await.unwrap_or_default();
                         let mut t = Builder::default();
-                        t.push_record(["name", "email"]);
-                        for (name, email) in &developers {
-                            t.push_record([name.as_str(), email.as_str()]);
-                        }
+                        t.push_record(["id", "name", "email", "gpg"]);
+                        developers.values().for_each(|x| {
+                            t.push_record([
+                                x.0.to_string(),
+                                x.1.to_string(),
+                                x.2.to_string(),
+                                x.3.to_string(),
+                            ]);
+                        });
                         println!("{}", t.build().with(Style::modern()));
                         return ExitCode::SUCCESS;
                     }
                     "reviewer" => {
                         let reviewers = fetch_reviewers().await.unwrap_or_default();
                         let mut t = Builder::default();
-                        t.push_record(["name", "email"]);
-                        for (name, email) in &reviewers {
-                            t.push_record([name.as_str(), email.as_str()]);
+                        t.push_record(["id", "name", "email", "gpg"]);
+                        for x in reviewers.values() {
+                            t.push_record([
+                                x.0.to_string(),
+                                x.1.to_string(),
+                                x.2.to_string(),
+                                x.3.to_string(),
+                            ]);
                         }
                         println!("{}", t.build().with(Style::modern()));
                         return ExitCode::SUCCESS;
@@ -244,9 +252,14 @@ async fn main() -> ExitCode {
                     "manager" => {
                         let managers = fetch_managers().await.unwrap_or_default();
                         let mut t = Builder::default();
-                        t.push_record(["name", "email"]);
-                        for (name, email) in &managers {
-                            t.push_record([name.as_str(), email.as_str()]);
+                        t.push_record(["id", "name", "email", "gpg"]);
+                        for x in managers.values() {
+                            t.push_record([
+                                x.0.to_string(),
+                                x.1.to_string(),
+                                x.2.to_string(),
+                                x.3.to_string(),
+                            ]);
                         }
                         println!("{}", t.build().with(Style::modern()));
                         return ExitCode::SUCCESS;
@@ -271,7 +284,6 @@ async fn main() -> ExitCode {
             let new_email = sub.get_one::<String>("new_email").expect("");
             let new_gpg = sub.get_one::<String>("new_gpg").expect("");
 
-            println!("Mise à jour du {} (Mél actuel: {})", role, email);
             if update_member(
                 &lang,
                 role.as_str(),
