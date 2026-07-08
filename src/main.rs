@@ -1,33 +1,54 @@
+use std::{fs::File, path::Path, process::ExitCode};
+
 use clap::{Arg, Command, value_parser};
-use crossterm::{
-    execute,
-    style::{Print, Stylize},
-    terminal::size,
-};
-use fluent_templates::{Loader, static_loader};
-use std::{fs::File, io::stdout, path::Path, process::ExitCode};
 use sys_locale::get_locale;
-use unic_langid::{LanguageIdentifier, langid};
+use unic_langid::langid;
 
 use crate::{
+    config::init_config,
+    db::init_db,
     manifest::{DEVELOPER_FILENAME, MANAGER_FILENAME, REVIEWER_FILENAME, extract_trust_chain},
     package::Package,
+    submit::submit_archive,
+    utils::{ko, ok},
 };
 
+mod config;
+mod db;
+mod locales;
 mod manifest;
 mod package;
-
-static_loader! {
-  pub static LOCALES = {
-        locales: "./locales",
-        fallback_language: "en-US",
-    };
-}
+mod submit;
+mod utils;
 
 fn cli() -> Command {
     Command::new(env!("CARGO_PKG_NAME"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .version(env!("CARGO_PKG_VERSION"))
+        .subcommand(Command::new("config").subcommands([
+            Command::new("init").about("init uvd configuration"),
+            Command::new("edit").about("edit uvd configuration"),
+        ]))
+        .subcommand(Command::new("db").about("create teams database"))
+        .subcommand(
+            Command::new("submit")
+                .arg(
+                    Arg::new("level")
+                        .short('l')
+                        .required(false)
+                        .default_value("0")
+                        .default_missing_value("0")
+                        .value_parser(value_parser!(i32))
+                        .help("developer(0) reviewer(1) manager(2)"),
+                )
+                .arg(
+                    Arg::new("source")
+                        .short('s')
+                        .required(true)
+                        .value_parser(value_parser!(String))
+                        .help("the archive source path to submit"),
+                ),
+        )
         .subcommand(
             Command::new("extract")
                 .about("Extract trust artifacts from an archive by level")
@@ -74,49 +95,6 @@ fn cli() -> Command {
         )
 }
 
-fn ok(lang: &LanguageIdentifier, key: &str) {
-    let (x, _) = size().expect("failed to get term size");
-    let description = LOCALES.try_lookup(lang, key).unwrap_or_default();
-    let star = " * ";
-    let ok = " ok ";
-    let padding = x
-        - description.chars().count() as u16
-        - ok.chars().count() as u16
-        - star.chars().count() as u16
-        - 2;
-    execute!(
-        stdout(),
-        Print(" * ".green().bold()),
-        Print(description.white()),
-        Print(" ".repeat(padding as usize)),
-        Print("[ ".white().bold()),
-        Print("ok".green().bold()),
-        Print(" ]".white().bold()),
-    )
-    .expect("failed to print");
-}
-
-fn ko(lang: &LanguageIdentifier, key: &str) {
-    let (x, _) = size().expect("failed to get term size");
-    let description = LOCALES.try_lookup(lang, key).unwrap_or_default();
-    let star = " * ";
-    let ok = " ko ";
-    let padding = x
-        - description.chars().count() as u16
-        - ok.chars().count() as u16
-        - star.chars().count() as u16
-        - 2;
-    execute!(
-        stdout(),
-        Print(" ! ".red().bold()),
-        Print(description.white()),
-        Print(" ".repeat(padding as usize)),
-        Print("[ ".white().bold()),
-        Print("ko".red().bold()),
-        Print(" ]".white().bold()),
-    )
-    .expect("faield to print");
-}
 #[derive(Clone)]
 pub enum Level {
     Developer = 0,
@@ -124,12 +102,27 @@ pub enum Level {
     Manager = 2,
 }
 
-fn main() -> ExitCode {
+#[tokio::main]
+async fn main() -> ExitCode {
     let mut app = cli();
     let matches = app.clone().get_matches();
     let locale = get_locale().unwrap_or_else(|| "en-US".to_string());
     let lang = locale.parse().unwrap_or(langid!("en-US"));
     match matches.subcommand() {
+        Some(("submit", sub)) => {
+            let level = sub.get_one::<u8>("level").expect("destination is required");
+            let archive = sub
+                .get_one::<String>("source")
+                .expect("archive is required");
+            submit_archive(&lang, archive, *level).await
+        }
+        Some(("db", _)) => {
+            if init_db().await.is_ok() {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            }
+        }
         Some(("extract", sub)) => {
             let destination = sub
                 .get_one::<String>("destination")
@@ -180,6 +173,40 @@ fn main() -> ExitCode {
                 }
             }
         }
+        Some(("config", sub)) => match sub.subcommand() {
+            Some(("init", _)) => {
+                if init_config(&lang) {
+                    return ExitCode::SUCCESS;
+                }
+                ExitCode::FAILURE
+            }
+
+            Some(("edit", _)) => {
+                if let Some(config) = dirs::config_dir() {
+                    let p = config.join("uvd");
+                    if std::process::Command::new(
+                        std::env::var("EDITOR").expect("missing editor").as_str(),
+                    )
+                    .arg("uvd.toml")
+                    .current_dir(&p)
+                    .spawn()
+                    .expect("")
+                    .wait()
+                    .expect("")
+                    .success()
+                    {
+                        return ExitCode::SUCCESS;
+                    } else {
+                        return ExitCode::FAILURE;
+                    }
+                }
+                ExitCode::FAILURE
+            }
+            _ => {
+                eprintln!("please use 'edit' or 'init' verb");
+                return ExitCode::FAILURE;
+            }
+        },
         _ => {
             app.print_help().expect("failed to print help");
             ExitCode::FAILURE
