@@ -46,20 +46,22 @@ pub fn init_config(lang: &LanguageIdentifier) -> bool {
         let password = Password::new("Database user password:")
             .prompt()
             .expect("password it's required");
-        let database_url = format!("mysql://{user}:{password}@{host}:{port}/{dbname}");
-        if let Ok(content) = toml::to_string(&Config { database_url }) {
-            let mut file = File::create(config_file).expect("failed to create config file");
-            file.write_all(content.as_bytes())
-                .expect("failed to write config");
-            file.sync_all().expect("failed to sync data");
-            ok(lang, "config-file-generated-successfully");
-            true
-        } else {
-            ko(lang, "failed-to-generate-config");
-            false
-        }
+        // Encode l'user et le password pour protéger l'URL des caractères spéciaux
+        let encoded_user = urlencoding::encode(&user);
+        let encoded_password = urlencoding::encode(&password);
+
+        // Construction sécurisée de l'URL
+        let database_url =
+            format!("mysql://{encoded_user}:{encoded_password}@{host}:{port}/{dbname}");
+        let config = toml::to_string(&Config { database_url }).expect("missingf data");
+        let mut file = File::create(config_file).expect("failed to create config file");
+        file.write_all(config.as_bytes())
+            .expect("failed to write config");
+        file.sync_all().expect("failed to sync data");
+        ok(lang, "config-file-generated-successfully");
+        true
     } else {
-        ko(lang, "no-config-dirs-has-been-detected");
+        ko(lang, "failed-to-generate-config");
         false
     }
 }

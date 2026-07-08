@@ -132,13 +132,11 @@ async fn main() -> ExitCode {
             let destination = sub
                 .get_one::<String>("destination")
                 .expect("destination is required");
-            let archive = sub
-                .get_one::<String>("source")
-                .expect("archive is required");
+            let archive = sub.get_one::<String>("source").expect("source is required");
             let level = sub.get_one::<i32>("level").expect("level is required");
             let (filename, end_success_message_key) = match level {
                 0 => (DEVELOPER_FILENAME, "developer-files-extracted-successfully"),
-                1 => (REVIEWER_FILENAME, "rewiever-files-extracted-successfully"),
+                1 => (REVIEWER_FILENAME, "reviewer-files-extracted-successfully"),
                 2 => (MANAGER_FILENAME, "manager-files-extracted-successfully"),
                 _ => (DEVELOPER_FILENAME, "developer-files-extracted-successfully"),
             };
@@ -192,7 +190,7 @@ async fn main() -> ExitCode {
                     if std::process::Command::new(
                         std::env::var("EDITOR").expect("missing editor").as_str(),
                     )
-                    .arg("uvd.toml")
+                    .arg("config.toml")
                     .current_dir(&p)
                     .spawn()
                     .expect("")
