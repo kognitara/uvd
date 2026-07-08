@@ -1,7 +1,7 @@
-use std::{fs::File, path::Path, process::ExitCode};
-
 use clap::{Arg, Command, value_parser};
+use std::{fs::File, path::Path, process::ExitCode};
 use sys_locale::get_locale;
+use tabled::{builder::Builder, settings::Style};
 use unic_langid::langid;
 
 use crate::{
@@ -10,6 +10,9 @@ use crate::{
     manifest::{DEVELOPER_FILENAME, MANAGER_FILENAME, REVIEWER_FILENAME, extract_trust_chain},
     package::Package,
     submit::submit_archive,
+    teams::{
+        add_role, delete_member, fetch_developers, fetch_managers, fetch_reviewers, update_member,
+    },
     utils::{ko, ok},
 };
 
@@ -19,12 +22,83 @@ mod locales;
 mod manifest;
 mod package;
 mod submit;
+mod teams;
 mod utils;
 
 fn cli() -> Command {
     Command::new(env!("CARGO_PKG_NAME"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .version(env!("CARGO_PKG_VERSION"))
+        .subcommand(
+            Command::new("team")
+                .about("Manage team members (developers, reviewers, managers)")
+                .subcommands([
+                    // uvd team add [developer|reviewer|manager]
+                    Command::new("add")
+                        .about("Add a new member to the team")
+                        .arg(Arg::new("role").required(true).value_parser([
+                            "developer",
+                            "reviewer",
+                            "manager",
+                        ]))
+                        .arg(Arg::new("name").required(true).help("Name of the member"))
+                        .arg(Arg::new("email").required(true).help("Email of the member"))
+                        .arg(Arg::new("gpg_key").required(true).help("GPG Key ID")),
+                    // uvd team rm [developer|reviewer|manager]
+                    Command::new("remove")
+                        .about("Remove a member from the team")
+                        .arg(Arg::new("role").required(true).value_parser([
+                            "developer",
+                            "reviewer",
+                            "manager",
+                        ]))
+                        .arg(
+                            Arg::new("email")
+                                .required(true)
+                                .help("Email of the member to remove"),
+                        ),
+                    // uvd team list [developer|reviewer|manager|all]
+                    Command::new("list").about("List team members").arg(
+                        Arg::new("target").required(true).value_parser([
+                            "developer",
+                            "reviewer",
+                            "manager",
+                        ]),
+                    ),
+                ]),
+        )
+        .subcommand(
+            Command::new("update")
+                .about("Update an existing team member's information")
+                .arg(Arg::new("role").required(true).value_parser([
+                    "developer",
+                    "reviewer",
+                    "manager",
+                ]))
+                .arg(
+                    Arg::new("email")
+                        .required(true)
+                        .help("Current email of the member to update"),
+                )
+                .arg(
+                    Arg::new("new_name")
+                        .required(true)
+                        .long("name")
+                        .help("New name"),
+                )
+                .arg(
+                    Arg::new("new_email")
+                        .required(false)
+                        .long("email")
+                        .help("New email"),
+                )
+                .arg(
+                    Arg::new("new_gpg")
+                        .required(true)
+                        .long("gpg")
+                        .help("New GPG Key ID"),
+                ),
+        )
         .subcommand(
             Command::new("config")
                 .about("Manage uvd config file")
@@ -114,6 +188,108 @@ async fn main() -> ExitCode {
     let locale = get_locale().unwrap_or_else(|| "en-US".to_string());
     let lang = locale.parse().unwrap_or(langid!("en-US"));
     match matches.subcommand() {
+        Some(("team", sub_team)) => match sub_team.subcommand() {
+            Some(("add", sub)) => {
+                let role = sub.get_one::<String>("role").expect("role");
+                let name = sub.get_one::<String>("name").expect("name");
+                let email = sub.get_one::<String>("email").expect("email");
+                let gpg_key = sub.get_one::<String>("gpg_key").expect("gpg");
+
+                if add_role(&lang, role, name, email, gpg_key).await.is_ok() {
+                    ok(&lang, "role-created");
+                    ExitCode::SUCCESS
+                } else {
+                    ko(&lang, "role-not-created");
+                    ExitCode::FAILURE
+                }
+            }
+            Some(("remove", sub)) => {
+                let role = sub.get_one::<String>("role").unwrap();
+                let email = sub.get_one::<String>("email").unwrap();
+                ok(&lang, "removing-role");
+                if delete_member(&lang, role.as_str(), email.as_str())
+                    .await
+                    .is_ok()
+                {
+                    ok(&lang, "role-removed");
+                    return ExitCode::SUCCESS;
+                } else {
+                    ko(&lang, "fail-to-remove-role");
+                    return ExitCode::FAILURE;
+                }
+            }
+            Some(("list", sub)) => {
+                let target = sub.get_one::<String>("target").unwrap();
+                match target.as_str() {
+                    "developer" => {
+                        let developers = fetch_developers().await.unwrap_or_default();
+                        let mut t = Builder::default();
+                        t.push_record(["name", "email"]);
+                        for (name, email) in &developers {
+                            t.push_record([name.as_str(), email.as_str()]);
+                        }
+                        println!("{}", t.build().with(Style::modern()));
+                        return ExitCode::SUCCESS;
+                    }
+                    "reviewer" => {
+                        let reviewers = fetch_reviewers().await.unwrap_or_default();
+                        let mut t = Builder::default();
+                        t.push_record(["name", "email"]);
+                        for (name, email) in &reviewers {
+                            t.push_record([name.as_str(), email.as_str()]);
+                        }
+                        println!("{}", t.build().with(Style::modern()));
+                        return ExitCode::SUCCESS;
+                    }
+                    "manager" => {
+                        let managers = fetch_managers().await.unwrap_or_default();
+                        let mut t = Builder::default();
+                        t.push_record(["name", "email"]);
+                        for (name, email) in &managers {
+                            t.push_record([name.as_str(), email.as_str()]);
+                        }
+                        println!("{}", t.build().with(Style::modern()));
+                        return ExitCode::SUCCESS;
+                    }
+                    _ => {
+                        eprintln!("please use verb 'developer', 'reviewer' or 'manager'");
+                        return ExitCode::FAILURE;
+                    }
+                }
+            }
+            _ => {
+                app.clone().print_help().ok();
+                ExitCode::FAILURE
+            }
+        },
+
+        // --- BLOC UPDATE ---
+        Some(("update", sub)) => {
+            let role = sub.get_one::<String>("role").unwrap();
+            let email = sub.get_one::<String>("email").unwrap();
+            let new_name = sub.get_one::<String>("new_name").expect("");
+            let new_email = sub.get_one::<String>("new_email").expect("");
+            let new_gpg = sub.get_one::<String>("new_gpg").expect("");
+
+            println!("Mise à jour du {} (Mél actuel: {})", role, email);
+            if update_member(
+                &lang,
+                role.as_str(),
+                email.as_str(),
+                new_name.as_str(),
+                new_email.as_str(),
+                new_gpg.as_str(),
+            )
+            .await
+            .is_ok()
+            {
+                ok(&lang, "member-updated");
+                ExitCode::SUCCESS
+            } else {
+                ko(&lang, "member-not-updated");
+                ExitCode::FAILURE
+            }
+        }
         Some(("submit", sub)) => {
             let level = sub.get_one::<u8>("level").expect("destination is required");
             let archive = sub

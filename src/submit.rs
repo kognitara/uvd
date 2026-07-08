@@ -1,4 +1,4 @@
-use crate::db::{fetch_developers_list, fetch_managers_list, fetch_reviewers_list};
+use crate::teams::{fetch_developers_list, fetch_managers_list, fetch_reviewers_list};
 use crate::utils::{ko, ok, tt};
 use inquire::{Confirm, Editor, Select, Text};
 use lettre::{Message, SmtpTransport, Transport};
