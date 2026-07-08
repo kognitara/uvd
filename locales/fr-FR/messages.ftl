@@ -28,3 +28,7 @@ archive-not-found = Le paquet de l'archive n'a pas pu être trouvé.
 db-error = Erreur de communication avec la base de données.
 submit-success = Archive soumise avec succès et notification envoyée !
 submit-failure = Échec de la soumission de l'archive ou de l'envoi de la notification.
+
+# Db
+db-created = La base de données a été crée avec succès
+db-not-created = Echec de la création de la base de données

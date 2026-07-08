@@ -26,3 +26,6 @@ archive-not-found = The archive package file could not be found.
 db-error = Database communication error.
 submit-success = Archive successfully submitted and notification sent!
 submit-failure = Failed to submit the archive or send the notification.
+# db
+db-created = Database has been created successfully
+db-not-created = Failed to create the database

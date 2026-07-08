@@ -54,6 +54,23 @@ pub async fn fetch_reviewers_list() -> Result<Vec<String>, sqlx::Error> {
             format!("{} <{}>", name, email)
         })
         .collect();
+    Ok(reviewers)
+}
 
+/// Récupère la liste des managers formatée pour le menu de sélection
+pub async fn fetch_managers_list() -> Result<Vec<String>, sqlx::Error> {
+    let pool = get_db_pool().await.expect("failed to connect");
+    let rows = sqlx::query("SELECT name, email FROM managers ORDER BY name ASC")
+        .fetch_all(&pool)
+        .await?;
+
+    let reviewers = rows
+        .into_iter()
+        .map(|row| {
+            let name: String = row.get("name");
+            let email: String = row.get("email");
+            format!("{} <{}>", name, email)
+        })
+        .collect();
     Ok(reviewers)
 }

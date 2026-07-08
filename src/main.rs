@@ -123,8 +123,10 @@ async fn main() -> ExitCode {
         }
         Some(("db", _)) => {
             if init_db().await.is_ok() {
+                ok(&lang, "db-created");
                 ExitCode::SUCCESS
             } else {
+                ko(&lang, "db-not-created");
                 ExitCode::FAILURE
             }
         }

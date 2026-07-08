@@ -1,4 +1,4 @@
-use crate::db::{fetch_developers_list, fetch_reviewers_list};
+use crate::db::{fetch_developers_list, fetch_managers_list, fetch_reviewers_list};
 use crate::utils::{ko, ok, tt};
 use inquire::{Confirm, Editor, Select, Text};
 use lettre::{Message, SmtpTransport, Transport};
@@ -23,13 +23,13 @@ pub async fn submit_archive(lang: &LanguageIdentifier, archive_path: &str, level
         }
         1 => {
             let revs = fetch_reviewers_list().await.unwrap_or_default();
-            let mans = fetch_reviewers_list().await.unwrap_or_default();
+            let mans = fetch_managers_list().await.unwrap_or_default();
             let who_question = tt(lang, "who-reviewer-are-you");
             let reviewer_question = tt(lang, "who-are-your-manager");
             result = (who_question, reviewer_question, revs, mans);
         }
         _ => {
-            eprintln!("Niveau de soumission invalide ou non supporté.");
+            eprintln!("must be inferior to 2.");
             return ExitCode::FAILURE;
         }
     };
