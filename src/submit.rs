@@ -6,7 +6,11 @@ use std::path::Path;
 use std::process::ExitCode;
 use unic_langid::LanguageIdentifier;
 
-pub async fn submit_archive(lang: &LanguageIdentifier, archive_path: &str, level: u8) -> ExitCode {
+pub async fn submit_archive(
+    lang: &LanguageIdentifier,
+    archive_path: &str,
+    level: &i32,
+) -> ExitCode {
     if !Path::new(archive_path).exists() {
         ko(lang, "archive-not-found");
         return ExitCode::FAILURE;

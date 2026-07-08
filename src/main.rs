@@ -303,11 +303,11 @@ async fn main() -> ExitCode {
             }
         }
         Some(("submit", sub)) => {
-            let level = sub.get_one::<u8>("level").expect("destination is required");
+            let level = sub.get_one::<i32>("level").expect("level is required");
             let archive = sub
                 .get_one::<String>("source")
                 .expect("archive is required");
-            submit_archive(&lang, archive, *level).await
+            submit_archive(&lang, archive, level).await
         }
         Some(("db", _)) => {
             if init_db().await.is_ok() {
