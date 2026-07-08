@@ -1,4 +1,4 @@
-use clap::{Arg, Command};
+use clap::{Arg, Command, value_parser};
 use crossterm::{
     execute,
     style::{Print, Stylize},
@@ -9,7 +9,10 @@ use std::{fs::File, io::stdout, path::Path, process::ExitCode};
 use sys_locale::get_locale;
 use unic_langid::{LanguageIdentifier, langid};
 
-use crate::package::Package;
+use crate::{
+    manifest::{DEVELOPER_FILENAME, MANAGER_FILENAME, REVIEWER_FILENAME, extract_trust_chain},
+    package::Package,
+};
 
 mod manifest;
 mod package;
@@ -25,6 +28,40 @@ fn cli() -> Command {
     Command::new(env!("CARGO_PKG_NAME"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .version(env!("CARGO_PKG_VERSION"))
+        .subcommand(
+            Command::new("extract")
+                .about("Extract trust artifacts from an archive by level")
+                .long_about(
+                    "Extract specific security manifests and detached cryptographic signatures \n\
+         from a .tar.gz archive based on the specified trust level:\n\
+         - 0: Developer artifacts (developer.json, developer.json.asc)\n\
+         - 1: Reviewer artifacts (reviewer.json, reviewer.json.asc)\n\
+         - 2: Manager artifacts (manager.json, manager.json.asc)",
+                )
+                .arg(
+                    Arg::new("level")
+                        .short('l')
+                        .required(true)
+                        .value_parser(value_parser!(i32))
+                        .help("the level (0 for developer) (1 for reviewer) (2 for manager)"),
+                )
+                .arg(
+                    Arg::new("destination")
+                        .short('d')
+                        .required(false)
+                        .default_missing_value(".")
+                        .default_value(".")
+                        .value_parser(value_parser!(String))
+                        .help("the destination directory"),
+                )
+                .arg(
+                    Arg::new("source")
+                        .short('s')
+                        .required(true)
+                        .value_parser(value_parser!(String))
+                        .help("the archive file"),
+                ),
+        )
         .subcommand(
             Command::new("build")
                 .about("Make uvd archive from source")
@@ -80,6 +117,12 @@ fn ko(lang: &LanguageIdentifier, key: &str) {
     )
     .expect("faield to print");
 }
+#[derive(Clone)]
+pub enum Level {
+    Developer = 0,
+    Reviewer = 1,
+    Manager = 2,
+}
 
 fn main() -> ExitCode {
     let mut app = cli();
@@ -87,6 +130,28 @@ fn main() -> ExitCode {
     let locale = get_locale().unwrap_or_else(|| "en-US".to_string());
     let lang = locale.parse().unwrap_or(langid!("en-US"));
     match matches.subcommand() {
+        Some(("extract", sub)) => {
+            let destination = sub
+                .get_one::<String>("destination")
+                .expect("destination is required");
+            let archive = sub
+                .get_one::<String>("source")
+                .expect("archive is required");
+            let level = sub.get_one::<i32>("level").expect("level is required");
+            let (filename, end_success_message_key) = match level {
+                0 => (DEVELOPER_FILENAME, "developer-files-extracted-successfully"),
+                1 => (REVIEWER_FILENAME, "rewiever-files-extracted-successfully"),
+                2 => (MANAGER_FILENAME, "manager-files-extracted-successfully"),
+                _ => (DEVELOPER_FILENAME, "developer-files-extracted-successfully"),
+            };
+            extract_trust_chain(
+                &lang,
+                Path::new(archive.as_str()),
+                Path::new(destination.as_str()),
+                filename,
+                end_success_message_key,
+            )
+        }
         Some(("build", sub)) => {
             ok(&lang, "start-building");
 

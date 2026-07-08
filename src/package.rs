@@ -26,32 +26,30 @@ impl Package {
         let archive_name = format!("{}_{}.tar.gz", self.name, self.version);
         let tmp_path = format!("/tmp/{}", archive_name);
 
+        let content = generate_developer_json(&self.src);
+        std::fs::write(DEVELOPER_FILENAME, content.as_str()).expect(DEVELOPER_FILENAME);
+        let status = std::process::Command::new("gpg")
+            .args([
+                "--batch",
+                "--yes",
+                "--detach-sign",
+                "--armor",
+                DEVELOPER_FILENAME,
+            ])
+            .status()
+            .expect("failed to execute gpg");
+
+        if !status.success() {
+            ko(lang, "failed-to-sign-check-your-gpg-keys");
+            std::fs::remove_file(DEVELOPER_FILENAME).ok();
+            return false;
+        }
         {
             let archive =
                 File::create(Path::new(&tmp_path)).expect("failed to create temp archive");
 
             let zstd_encoder = Encoder::new(archive, 19).expect("failed to encode");
-
             let mut tar = Builder::new(zstd_encoder);
-            let content = generate_developer_json(&self.src);
-            std::fs::write(DEVELOPER_FILENAME, content.as_str()).expect(DEVELOPER_FILENAME);
-
-            let status = std::process::Command::new("gpg")
-                .args([
-                    "--batch",
-                    "--yes",
-                    "--detach-sign",
-                    "--armor",
-                    DEVELOPER_FILENAME,
-                ])
-                .status()
-                .expect("failed to execute gpg");
-
-            if !status.success() {
-                ko(lang, "failed-to-sign-check-your-gpg-keys");
-                std::fs::remove_file(DEVELOPER_FILENAME).ok();
-                return false;
-            }
             let mut header = tar::Header::new_gnu();
             header.set_size(content.len() as u64);
             header.set_mode(0o644);

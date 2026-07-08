@@ -5,3 +5,6 @@ failed-to-sign-check-your-gpg-keys = Échec de la signature du manifeste des som
 developer-generated-successfully = Manifeste développeur généré avec succès.
 src-must-be-a-directory = La source doit être un répertoire.
 src-must-be-contains-uvd-yml = Le répertoire source doit contenir le fichier uvd.yml.
+developer-files-extracted-successfully = Les fichiers du developeur on étaient extrait avec success.
+reviewer-files-extracted-successfully = Les fichiers du reviewer on étaient extrait avec success.
+manager-files-extracted-successfully = Les fichiers du manager on étaient extrait avec success.
