@@ -95,8 +95,7 @@ pub async fn submit_archive(
             ok(lang, "submit-success");
             ExitCode::SUCCESS
         }
-        Err(e) => {
-            eprintln!("Erreur SMTP : {:?}", e);
+        Err(_) => {
             ko(lang, "submit-failure");
             ExitCode::FAILURE
         }
