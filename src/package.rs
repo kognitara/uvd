@@ -14,7 +14,8 @@ pub struct Package {
     name: String,
     version: String,
     description: String,
-    packager: String,
+    pkgemail: String,
+    pkgname: String,
     license: String,
     src: Vec<String>,
     readme: String,
@@ -23,8 +24,8 @@ pub struct Package {
 
 impl Package {
     pub fn archive(&mut self, lang: &LanguageIdentifier) -> bool {
-        let archive_name = format!("{}_{}.tar.gz", self.name, self.version);
-        let tmp_path = format!("/tmp/{}", archive_name);
+        let archive_name = format!("{}_{}.uvd", self.name, self.version);
+        let tmp_path = format!("/tmp/{archive_name}");
 
         let content = generate_developer_json(&self.src);
         std::fs::write(DEVELOPER_FILENAME, content.as_str()).expect(DEVELOPER_FILENAME);
@@ -32,6 +33,8 @@ impl Package {
             .args([
                 "--batch",
                 "--yes",
+                "--local-user",
+                self.pkgemail.as_str(),
                 "--detach-sign",
                 "--armor",
                 DEVELOPER_FILENAME,

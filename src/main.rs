@@ -1,4 +1,5 @@
 use clap::{Arg, Command, value_parser};
+use inquire::{Select, Text};
 use std::{fs::File, path::Path, process::ExitCode};
 use sys_locale::get_locale;
 use tabled::{builder::Builder, settings::Style};
@@ -34,29 +35,9 @@ fn cli() -> Command {
                 .about("Manage team members (developers, reviewers, managers)")
                 .subcommands([
                     // uvd team add [developer|reviewer|manager]
-                    Command::new("add")
-                        .about("Add a new member to the team")
-                        .arg(Arg::new("role").required(true).value_parser([
-                            "developer",
-                            "reviewer",
-                            "manager",
-                        ]))
-                        .arg(Arg::new("name").required(true).help("Name of the member"))
-                        .arg(Arg::new("email").required(true).help("Email of the member"))
-                        .arg(Arg::new("gpg_key").required(true).help("GPG Key ID")),
+                    Command::new("add").about("Add a new member to the team"),
                     // uvd team rm [developer|reviewer|manager]
-                    Command::new("remove")
-                        .about("Remove a member from the team")
-                        .arg(Arg::new("role").required(true).value_parser([
-                            "developer",
-                            "reviewer",
-                            "manager",
-                        ]))
-                        .arg(
-                            Arg::new("email")
-                                .required(true)
-                                .help("Email of the member to remove"),
-                        ),
+                    Command::new("remove").about("Remove a member from the team"),
                     // uvd team list [developer|reviewer|manager|all]
                     Command::new("list").about("List team members").arg(
                         Arg::new("target").required(true).value_parser([
@@ -189,26 +170,32 @@ async fn main() -> ExitCode {
     let lang = locale.parse().unwrap_or(langid!("en-US"));
     match matches.subcommand() {
         Some(("team", sub_team)) => match sub_team.subcommand() {
-            Some(("add", sub)) => {
-                let role = sub.get_one::<String>("role").expect("role");
-                let name = sub.get_one::<String>("name").expect("name");
-                let email = sub.get_one::<String>("email").expect("email");
-                let gpg_key = sub.get_one::<String>("gpg_key").expect("gpg");
-
-                if add_role(&lang, role, name, email, gpg_key).await.is_ok() {
+            Some(("add", _)) => {
+                let role = Select::new("Role to create:", vec!["developer", "reviewer", "manager"])
+                    .prompt()
+                    .expect("failed to get role");
+                let name = Text::new("Role name:").prompt().expect("");
+                let email = Text::new("Role email:").prompt().expect("");
+                let gpg_key = Text::new("Gpg key:").prompt().expect("");
+                if add_role(&lang, role, name.as_str(), email.as_str(), gpg_key.as_str())
+                    .await
+                    .is_ok()
+                {
                     ExitCode::SUCCESS
                 } else {
                     ExitCode::FAILURE
                 }
             }
-            Some(("remove", sub)) => {
-                let role = sub.get_one::<String>("role").unwrap();
-                let email = sub.get_one::<String>("email").unwrap();
+            Some(("remove", _)) => {
+                let role = Select::new("Role to remove", vec!["developer", "reviewer", "manager"])
+                    .prompt()
+                    .expect("failed to get role");
+
+                let email = Text::new("Role email:")
+                    .prompt()
+                    .expect("failed to get email");
                 ok(&lang, "removing-role");
-                if delete_member(&lang, role.as_str(), email.as_str())
-                    .await
-                    .is_ok()
-                {
+                if delete_member(&lang, role, email.as_str()).await.is_ok() {
                     ok(&lang, "role-removed");
                     return ExitCode::SUCCESS;
                 } else {

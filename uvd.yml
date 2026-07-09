@@ -1,7 +1,8 @@
 name: "uvd"
 version: "0.1.1"
 description: "Unix verified distribution"
-packager: "Shirusu Ryu <shirusuryu@gmail.com>"
+pkgname: "Shirusu Ryu"
+pkgemail: "shirusuryu@gmail.com"
 src:
   - "src"
   - "Cargo.toml"
