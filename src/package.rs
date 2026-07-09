@@ -11,15 +11,15 @@ use zstd::Encoder;
 
 #[derive(Serialize, Clone, Default, Deserialize)]
 pub struct Package {
-    name: String,
-    version: String,
-    description: String,
-    pkgemail: String,
-    pkgname: String,
-    license: String,
-    src: Vec<String>,
-    readme: String,
-    man: Vec<String>,
+    pub name: String,
+    pub version: String,
+    pub description: String,
+    pub pkgemail: String,
+    pub pkgname: String,
+    pub license: String,
+    pub src: Vec<String>,
+    pub readme: String,
+    pub man: Vec<String>,
 }
 
 impl Package {

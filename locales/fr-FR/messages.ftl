@@ -58,3 +58,15 @@ archive-not-found = Le paquet de l'archive n'a pas pu être trouvé.
 db-error = Erreur de communication avec la base de données.
 submit-success = Archive soumise avec succès et notification envoyée !
 submit-failure = Échec de la soumission de l'archive ou de l'envoi de la notification.
+
+# Clone & Init
+start-clone = Démarrage du clonage du dépôt...
+cloned = Dépôt cloné avec succès.
+package-name = Nom du paquet :
+package-description = Description du paquet :
+package-version = Version du paquet :
+package-readme-name = Nom du fichier Readme :
+packager-name = Nom du packager :
+packager-email = Email du packager (GPG) :
+uvd-yml-exists = Un fichier de configuration uvd.yml existe déjà dans ce dépôt.
+uvd-yml-created-successfully = Le fichier de configuration uvd.yml à été générer avec succès.

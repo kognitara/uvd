@@ -6,6 +6,7 @@ use tabled::{builder::Builder, settings::Style};
 use unic_langid::langid;
 
 use crate::{
+    clone::clone_and_init,
     config::init_config,
     db::init_db,
     manifest::{DEVELOPER_FILENAME, MANAGER_FILENAME, REVIEWER_FILENAME, extract_trust_chain},
@@ -17,6 +18,7 @@ use crate::{
     utils::{ko, ok},
 };
 
+mod clone;
 mod config;
 mod db;
 mod locales;
@@ -30,6 +32,7 @@ fn cli() -> Command {
     Command::new(env!("CARGO_PKG_NAME"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .version(env!("CARGO_PKG_VERSION"))
+        .subcommand(Command::new("clone").about("Clone a git repository"))
         .subcommand(
             Command::new("team")
                 .about("Manage team members (developers, reviewers, managers)")
@@ -387,6 +390,20 @@ async fn main() -> ExitCode {
                 return ExitCode::FAILURE;
             }
         },
+        Some(("clone", _)) => {
+            let url = Text::new("Repository url:")
+                .prompt()
+                .expect("failed to get repo url");
+            let dest = Text::new("Repository name:")
+                .prompt()
+                .expect("failed to get repository name");
+            if clone_and_init(&lang, url.as_str(), dest.as_str()) {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            }
+        }
+
         _ => {
             app.print_help().expect("failed to print help");
             ExitCode::FAILURE

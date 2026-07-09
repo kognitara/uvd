@@ -58,3 +58,19 @@ archive-not-found = The archive package file could not be found.
 db-error = Database communication error.
 submit-success = Archive successfully submitted and notification sent!
 submit-failure = Failed to submit the archive or send the notification.
+
+# Clone & Init
+start-clone = Starting repository clone...
+cloned = Repository cloned successfully.
+removing-repository = Removing repository...
+repository-removed = Repository removed successfully.
+repository-already-exists = Repository already exists override?
+package-name = Package name:
+package-description = Package description:
+package-version = Package version:
+package-readme-name = Readme filename:
+packager-name = Packager name:
+packager-email = Packager email (GPG):
+uvd-yml-exists = A uvd.yml configuration file already exists in this repository.
+uvd-yml-created-successfully = The uvd.yml has been generated successfully.
+
