@@ -1,6 +1,6 @@
-use clap::Command;
+use clap::{ArgAction, Command};
+use clap_complete::{Shell, generate};
 use serde::{Deserialize, Serialize};
-
 #[derive(Deserialize, Serialize)]
 pub struct Uvd {
     name: String,
@@ -44,6 +44,16 @@ fn cli() -> Command {
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .subcommand(Command::new("build").about("Create uvd achive from source code"))
         .subcommand(Command::new("init").about("Init the uvd config"))
+        .subcommand(
+            Command::new("generate")
+                .about("Generate shell completion scripts")
+                .arg(
+                    clap::Arg::new("shell")
+                        .action(ArgAction::Set)
+                        .help("Shell to generate completion for")
+                        .required(true),
+                ),
+        )
 }
 fn main() {
     let app = cli();
@@ -64,6 +74,23 @@ fn main() {
             let uvd = File::create("uvd.yml").expect("Failed to create uvd.yml");
             serde_yml::to_writer(uvd, &conf).expect("Failed to write uvd.yml");
             println!("uvd.yml created successfully.");
+        }
+        Some(("generate", sub)) => {
+            let bin_name = sub
+                .get_one::<String>("shell")
+                .expect("bin_name is required");
+            let serde_shell = match bin_name.as_str() {
+                "bash" => Shell::Bash,
+                "zsh" => Shell::Zsh,
+                "fish" => Shell::Fish,
+                _ => {
+                    eprintln!("Unsupported shell: {}", bin_name);
+                    std::process::exit(1);
+                }
+            };
+            let mut cmd = cli();
+            // On génère le  et on l'envoie sur la sortie standard (stdout)
+            generate(serde_shell, &mut cmd, bin_name, &mut io::stdout());
         }
         Some(("build", _)) => {
             let conf = serde_yml::from_str::<Uvd>(
