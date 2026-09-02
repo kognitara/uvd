@@ -1,5 +1,6 @@
-use clap::{ArgAction, Command};
+use clap::{Arg, ArgAction, Command};
 use clap_complete::{Shell, generate};
+use inquire::Text;
 use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Serialize)]
 pub struct Uvd {
@@ -43,7 +44,15 @@ fn cli() -> Command {
     Command::new(env!("CARGO_PKG_NAME"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .subcommand(Command::new("build").about("Create uvd achive from source code"))
-        .subcommand(Command::new("init").about("Init the uvd config"))
+        .subcommand(
+            Command::new("init").about("Init the uvd config").arg(
+                Arg::new("interactive")
+                    .long("interactive")
+                    .short('i')
+                    .required(false)
+                    .action(ArgAction::SetTrue),
+            ),
+        )
         .subcommand(
             Command::new("completion")
                 .about("Generate shell completion scripts")
@@ -59,18 +68,48 @@ fn main() {
     let app = cli();
     let matches = app.clone().get_matches();
     match matches.subcommand() {
-        Some(("init", _)) => {
-            let conf = Uvd {
-                name: String::new(),
-                version: String::new(),
-                homepage: String::new(),
-                license: String::new(),
-                repository: String::new(),
-                description: String::new(),
-                src: Vec::new(),
-                man: Vec::new(),
+        Some(("init", sub)) => {
+            let conf = if sub.get_flag("interactive") {
+                let name = Text::new("Enter the name of the project:")
+                    .prompt()
+                    .expect("Failed to read input");
+                let version = Text::new("Enter the version of the project:")
+                    .prompt()
+                    .expect("Failed to read input");
+                let homepage = Text::new("Enter the homepage of the project:")
+                    .prompt()
+                    .expect("Failed to read input");
+                let license = Text::new("Enter the license of the project:")
+                    .prompt()
+                    .expect("Failed to read input");
+                let repository = Text::new("Enter the repository of the project:")
+                    .prompt()
+                    .expect("Failed to read input");
+                let description = Text::new("Enter the description of the project:")
+                    .prompt()
+                    .expect("Failed to read input");
+                Uvd {
+                    name,
+                    version,
+                    homepage,
+                    license,
+                    repository,
+                    description,
+                    src: Vec::new(),
+                    man: Vec::new(),
+                }
+            } else {
+                Uvd {
+                    name: String::new(),
+                    version: String::new(),
+                    homepage: String::new(),
+                    license: String::new(),
+                    repository: String::new(),
+                    description: String::new(),
+                    src: Vec::new(),
+                    man: Vec::new(),
+                }
             };
-
             let uvd = File::create("uvd.yml").expect("Failed to create uvd.yml");
             serde_yml::to_writer(uvd, &conf).expect("Failed to write uvd.yml");
             println!("uvd.yml created successfully.");

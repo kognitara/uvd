@@ -1,14 +1,8 @@
-name: "uvd"
+name: uvd
 version: "0.1.1"
-homepage: "https://github/kognitara/uvd"
-license: "AGPL-3.0"
-repository: "https://github/kognitara/uvd"
-description: "Unix Vault Distribution"
-src:
-  - src
-  - LICENSE
-  - README.md
-  - Cargo.toml
-  - Cargo.lock  
-man:
-  - man/uvd.1
+homepage: "https://github.com/kognitara/uvd"
+license: APGL-3.0
+repository: "https://github.com/kognitara/uvd"
+description: Universal Vault Distribution
+src: []
+man: []
