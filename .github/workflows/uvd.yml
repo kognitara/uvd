@@ -27,11 +27,15 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
       - name: Run fmt
         run: cargo fmt --all -- --check
-      - name: Run uvd
-        run: cargo run -- init
       - name: Run uvd help
         run: cargo run -- help
       - name: Run uvd completion
         run: cargo run -- completion bash
       - name: Run uvd completion zsh
         run: cargo run -- completion zsh
+      - name: Run uvd completion fish
+        run: cargo run -- completion fish
+      - name: Run uvd build 
+        run: cargo run -- build
+      - name: Run uvd init
+        run: cargo run -- init
