@@ -23,13 +23,13 @@ fn create_archive_zstd(chemins: Vec<String>, chemin_archive: &str) -> io::Result
     let buffer_sortie = BufWriter::new(fichier_sortie);
     let encodeur_zstd = Encoder::new(buffer_sortie, 3)?.auto_finish();
     let mut archive = Builder::new(encodeur_zstd);
-    for chemin_str in chemins {
+    for chemin_str in &chemins {
         let chemin = Path::new(&chemin_str);
         if !chemin.exists() {
             continue;
         }
         if chemin.is_dir() {
-            archive.append_dir_all(&chemin, chemin)?;
+            archive.append_dir_all(chemin, chemin)?;
         } else if chemin.is_file() {
             let mut fichier = File::open(chemin)?;
             archive.append_file(chemin, &mut fichier)?;
