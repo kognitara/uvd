@@ -1,40 +1,37 @@
-name: Rust
+name: Uvd
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 env:
   CARGO_TERM_COLOR: always
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        profile: minimal
-        override: true
-    - name: Install dependencies
-      run: sudo apt-get install -y libssl-dev pkg-config incus incus-client incus-extra incus-agent
-    - uses: actions/checkout@v6
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
-    - name: Run clippy
-      run: cargo clippy --all-targets --all-features -- -D warnings
-    - name: Run fmt
-      run: cargo fmt --all -- --check
-    - name: Run uvd
-      run: cargo run -- init
-    - name: Run uvd help
-      run: cargo run -- help
-    - name: Run uvd completion
-      run: cargo run -- completion bash
-    - name: Run uvd completion zsh
-      run: cargo run -- completion zsh
-    - name: Run uvd completion fish
-    - run: cargo run -- help
-    
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - name: Install dependencies
+        run: sudo apt-get install -y libssl-dev pkg-config incus incus-client incus-extra incus-agent
+      - uses: actions/checkout@v6
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run fmt
+        run: cargo fmt --all -- --check
+      - name: Run uvd
+        run: cargo run -- init
+      - name: Run uvd help
+        run: cargo run -- help
+      - name: Run uvd completion
+        run: cargo run -- completion bash
+      - name: Run uvd completion zsh
+        run: cargo run -- completion zsh
