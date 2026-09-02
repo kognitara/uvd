@@ -1,16 +1,14 @@
 name: "uvd"
 version: "0.1.1"
-description: "Unix verified distribution"
-pkgname: "Shirusu Ryu"
-pkgemail: "shirusuryu@gmail.com"
+homepage: "https://github/kognitara/uvd"
+license: "AGPL-3.0"
+repository: "https://github/kognitara/uvd"
+description: "Unix Vault Distribution"
 src:
-  - "src"
-  - "Cargo.toml"
-  - "locales"
-  - "man"
-  - "README.md"
-  - "LICENSE"
-readme: "README.md"
-license: "LICENSE"
+  - src
+  - LICENSE
+  - README.md
+  - Cargo.toml
+  - Cargo.lock  
 man:
-    - "man/uvd.1"
+  - man/uvd.1
