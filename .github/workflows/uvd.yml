@@ -17,7 +17,7 @@ jobs:
           profile: minimal
           override: true
       - name: Install dependencies
-        run: sudo apt-get install -y libssl-dev pkg-config incus incus-client incus-agent
+        run: sudo apt-get update -y && sudo apt-get install -y libssl-dev pkg-config incus incus-client incus-agent
       - uses: actions/checkout@v6
       - name: Build
         run: cargo build --verbose
