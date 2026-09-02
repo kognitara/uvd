@@ -45,7 +45,7 @@ fn cli() -> Command {
         .subcommand(Command::new("build").about("Create uvd achive from source code"))
         .subcommand(Command::new("init").about("Init the uvd config"))
         .subcommand(
-            Command::new("generate")
+            Command::new("completion")
                 .about("Generate shell completion scripts")
                 .arg(
                     clap::Arg::new("shell")
@@ -75,7 +75,7 @@ fn main() {
             serde_yml::to_writer(uvd, &conf).expect("Failed to write uvd.yml");
             println!("uvd.yml created successfully.");
         }
-        Some(("generate", sub)) => {
+        Some(("completion", sub)) => {
             let bin_name = sub
                 .get_one::<String>("shell")
                 .expect("bin_name is required");
