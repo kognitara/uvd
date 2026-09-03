@@ -2,6 +2,12 @@ use clap::{Arg, ArgAction, Command};
 use clap_complete::{Shell, generate};
 use inquire::Text;
 use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::{self, BufWriter};
+use std::path::Path;
+use tar::Builder;
+use zstd::Encoder;
+
 #[derive(Deserialize, Serialize)]
 pub struct Uvd {
     name: String,
@@ -13,18 +19,17 @@ pub struct Uvd {
     src: Vec<String>,
     man: Vec<String>,
 }
-use std::fs::File;
-use std::io::{self, BufWriter};
-use std::path::Path;
-use tar::Builder;
-use zstd::Encoder;
 
-fn create_archive_zstd(chemins: Vec<String>, chemin_archive: &str) -> io::Result<()> {
-    let fichier_sortie = File::create(chemin_archive)?;
-    let buffer_sortie = BufWriter::new(fichier_sortie);
-    let encodeur_zstd = Encoder::new(buffer_sortie, 3)?.auto_finish();
-    let mut archive = Builder::new(encodeur_zstd);
-    for chemin_str in &chemins {
+fn create_archive_zstd(
+    sources: Vec<String>,
+    manuals: Vec<String>,
+    archive: &str,
+) -> io::Result<()> {
+    let output = File::create(archive)?;
+    let buffer = BufWriter::new(output);
+    let encoder_zstd = Encoder::new(buffer, 3)?.auto_finish();
+    let mut archive = Builder::new(encoder_zstd);
+    for chemin_str in &sources {
         let chemin = Path::new(&chemin_str);
         if !chemin.exists() {
             continue;
@@ -36,6 +41,18 @@ fn create_archive_zstd(chemins: Vec<String>, chemin_archive: &str) -> io::Result
             archive.append_file(chemin, &mut fichier)?;
         }
     }
+    for manual in &manuals {
+        let man = Path::new(&manual);
+        if !man.exists() {
+            continue;
+        }
+        if man.is_dir() {
+            archive.append_dir_all(man, man)?;
+        } else if man.is_file() {
+            let mut f = File::open(man)?;
+            archive.append_file(man, &mut f)?;
+        }
+    }
     archive.finish()?;
     Ok(())
 }
@@ -43,6 +60,7 @@ fn create_archive_zstd(chemins: Vec<String>, chemin_archive: &str) -> io::Result
 fn cli() -> Command {
     Command::new(env!("CARGO_PKG_NAME"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
+        .version(env!("CARGO_PKG_VERSION"))
         .subcommand(Command::new("build").about("Create uvd achive from source code"))
         .subcommand(
             Command::new("init").about("Init the uvd config").arg(
@@ -137,9 +155,9 @@ fn main() {
             )
             .expect("Failed to parse uvd.yml");
             let chemin_archive = format!("{}_{}.tar.zst", conf.name, conf.version);
-            match create_archive_zstd(conf.src, &chemin_archive) {
-                Ok(_) => println!("Archive created successfully: {}", chemin_archive),
-                Err(e) => eprintln!("Error creating archive: {}", e),
+            match create_archive_zstd(conf.src, conf.man, &chemin_archive) {
+                Ok(_) => println!("Archive created successfully: {chemin_archive}"),
+                Err(e) => eprintln!("Error creating archive: {e}"),
             }
         }
         _ => app.clone().print_help().expect("failed to print help"),

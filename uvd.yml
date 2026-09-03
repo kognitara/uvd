@@ -4,5 +4,11 @@ homepage: "https://github.com/kognitara/uvd"
 license: APGL-3.0
 repository: "https://github.com/kognitara/uvd"
 description: Universal Vault Distribution
-src: []
-man: []
+src:
+  - src
+  - Cargo.toml
+  - LICENSE
+  - README
+  - uvd.yml
+man:
+  - man
